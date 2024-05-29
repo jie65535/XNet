@@ -300,7 +300,11 @@ public class GuiController extends GenericGuiContainer<TileEntityController, Gen
                 return true;
             } else if (keyCode == GLFW.GLFW_KEY_V) {
                 if (getSelectedChannel() != -1) {
-                    pasteConnector();
+                    if (SafeClientTools.isSneaking()) {
+                        pasteAllConnector();
+                    } else {
+                        pasteConnector();
+                    }
                 } else {
                     showMessage(minecraft, this, getWindowManager(), 50, 50, ChatFormatting.RED + ERROR_NOTHING_SELECTED.i18n());
                 }
@@ -540,6 +544,49 @@ public class GuiController extends GenericGuiContainer<TileEntityController, Gen
                     .put(PARAM_JSON, json)
                     .build());
             sendSplit(packet, max < 0);
+
+            if (connectorList.getSelected() != -1) {
+                delayedSelectedChannel = getSelectedChannel();
+                delayedSelectedLine = connectorList.getSelected();
+                delayedSelectedConnector = connectorPositions.get(connectorList.getSelected());
+            }
+            refresh();
+        } catch (Exception e) {
+            showMessage(minecraft, this, getWindowManager(), 50, 50, ChatFormatting.RED + ERROR_READ_COPY.i18n());
+        }
+    }
+    
+    private void pasteAllConnector() {
+        try {
+            String json = Minecraft.getInstance().keyboardHandler.getClipboard();
+            int max = Config.controllerMaxPaste.get();
+            if (max >= 0 && json.length() > max) {
+                showMessage(minecraft, this, getWindowManager(), 50, 50, ChatFormatting.RED + ERROR_LARGE_COPY.i18n());
+                return;
+            }
+            JsonParser parser = new JsonParser();
+            JsonObject root = parser.parse(json).getAsJsonObject();
+            String type = root.get(TAG_TYPE).getAsString();
+            IChannelType channelType = XNet.xNetApi.findType(type);
+            if (channelType == null) {
+                showMessage(minecraft, this, getWindowManager(), 50, 50, ChatFormatting.RED + ERROR_UNS_CH_FORMATTED.i18n(type));
+                return;
+            }
+
+            // Paste each connector
+            for (SidedPos sidedPos : connectorPositions) {
+                // Paste only on the same side
+                if (editingConnector.side().ordinal() != sidedPos.side().ordinal()) {
+                    continue;
+                }
+                PacketServerCommandTyped packet = PacketServerCommandTyped.create(tileEntity.getBlockPos(), tileEntity.getDimension(), CMD_PASTECONNECTOR.name(), TypedMap.builder()
+                        .put(PARAM_INDEX, getSelectedChannel())
+                        .put(PARAM_POS, sidedPos.pos())
+                        .put(PARAM_SIDE, sidedPos.side().ordinal())
+                        .put(PARAM_JSON, json)
+                        .build());
+                sendSplit(packet, max < 0);
+            }
 
             if (connectorList.getSelected() != -1) {
                 delayedSelectedChannel = getSelectedChannel();
