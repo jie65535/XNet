@@ -227,10 +227,10 @@ public class GuiController extends GenericGuiContainer<TileEntityController, Gen
             } else if (keyCode == GLFW.GLFW_KEY_V) {
                 if (getSelectedChannel() != -1) {
                     if (SafeClientTools.isSneaking()) {
-+                        pasteAllConnector();
-+                    } else {
-+                        pasteConnector();
-+                    }
+                        pasteAllConnector();
+                    } else {
+                        pasteConnector();
+                    }
                 } else {
                     showMessage(minecraft, this, getWindowManager(), 50, 50, ChatFormatting.RED + "Nothing selected!");
                 }
@@ -464,7 +464,7 @@ public class GuiController extends GenericGuiContainer<TileEntityController, Gen
         }
     }
 
-    private void pasteConnector() {
+    private void pasteAllConnector() {
         try {
             String json = Minecraft.getInstance().keyboardHandler.getClipboard();
             int max = Config.controllerMaxPaste.get();
